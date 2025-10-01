@@ -6,6 +6,8 @@ from telethon import TelegramClient
 from dotenv import load_dotenv
 import os
 from PIL import Image
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import asyncio
 
 load_dotenv()
 
@@ -15,11 +17,11 @@ to = os.getenv("TELEGRAM_TO")
 
 client = TelegramClient("session_name", api_id, api_hash)
 
-async def main():
+
+async def send_morning():
     message = "С добрым утром 🌞"
 
     try:
-        # пробуем скачать случайную картинку
         q = "открытки с добрым утром и хорошего дня"
         url = "https://yandex.kz/images/search"
         params = {"text": q}
@@ -44,7 +46,6 @@ async def main():
                 f.write(chunk)
         print("Сохранено как", file_path)
 
-        # пересохраняем через Pillow для гарантии
         img = Image.open(file_path).convert("RGB")
         img.save(file_path, "JPEG")
         print("Пересохранено в корректный JPEG")
@@ -55,6 +56,18 @@ async def main():
         print("Ошибка при обработке картинки:", e)
         await client.send_message(to, message + " (без картинки)")
         print("✅ Отправлено только сообщение")
+
+
+async def main():
+    scheduler = AsyncIOScheduler(timezone="Asia/Almaty")  # твой часовой пояс (Казахстан)
+    scheduler.add_job(send_morning, "cron", hour=6, minute=20)  # каждый день в 6:20
+    scheduler.start()
+
+    print("📅 Планировщик запущен. Жду 6:20...")
+
+    # чтобы скрипт не завершался
+    while True:
+        await asyncio.sleep(60)
 
 
 with client:
